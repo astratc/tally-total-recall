@@ -16,3 +16,12 @@ export class Tally{
   async learnLimit(category,limit){await this.mem.rememberAndWait(`Learned preference: group monthly limit for ${category} is ${limit} USD.`,undefined,{timeoutMs:60000});}
   async ask(q){return (await this.mem.recall({query:q,limit:5})).results??[];}
 }
+// Close debts automatically when an on-chain USDC repayment (read via Tatum) arrives.
+import { settlements } from './tatum.mjs';
+Tally.prototype.reconcile = async function(groupAddr, walletOf, opts={}){
+  const paid=await settlements(groupAddr, opts, opts.fetch); const done=[];
+  for(const s of paid){const who=Object.keys(walletOf).find(k=>walletOf[k]===s.from); if(!who) continue;
+    const usd=Number(s.amount)/1e6; this.ledger.push({payer:who,amount:usd,split:[opts.payee??'group'],category:'settlement',note:s.digest});
+    await this.mem.rememberAndWait(`Settlement: ${who} repaid ${usd} USDC on Sui (tx ${s.digest}).`,undefined,{timeoutMs:60000}); done.push({who,usd,tx:s.digest});}
+  return done;
+};
