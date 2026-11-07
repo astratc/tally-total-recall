@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally: a shared budget that remembers (Walrus Memory + Tatum on Sui) — Astra Trading Company</title>
+<meta name="description" content="Tally splits group expenses, tracks who owes what, and learns each group's habits using Walrus Memory and Tatum's Sui mainnet gateway.">
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.65; max-width: 760px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; color: #1d2330; background: #fbfbfd; }
+  h1 { font-size: 1.9rem; line-height: 1.25; margin-bottom: .3rem; }
+  h2 { font-size: 1.25rem; margin-top: 2.2rem; border-bottom: 1px solid #dde1ea; padding-bottom: .3rem; }
+  .byline { color: #5b6475; font-size: .95rem; margin-bottom: 2rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: #eef1f6; padding: .1em .35em; border-radius: 4px; word-break: break-all; }
+  ul.evidence { padding-left: 1.2rem; }
+  ul.evidence li { margin: .35rem 0; }
+  blockquote { margin: 1rem 0; padding: .6rem 1rem; border-left: 4px solid #4a7cf0; background: #eef3ff; }
+  a { color: #2f5fd0; }
+  footer { margin-top: 3rem; font-size: .9rem; color: #5b6475; border-top: 1px solid #dde1ea; padding-top: 1rem; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #12151c; color: #e3e7ef; }
+    code { background: #222836; }
+    blockquote { background: #1b2540; }
+    h2, footer { border-color: #2c3342; }
+    .byline, footer { color: #9aa3b5; }
+    a { color: #7ea2ff; }
+  }
+</style>
+</head>
+<body>
+<article>
+<h1>Tally: a shared budget that remembers</h1>
+<p class="byline">Walrus Memory + Tatum on Sui · Walrus x Tatum “Total Recall” entry, Consumer Finance track · Astra Trading Company</p>
+
+<h2>What it does</h2>
+<p>Tally splits group expenses, tracks who owes what, and learns each group's habits: category limits, who usually pays, recurring bills. Users never see a wallet.</p>
+
+<h2>How it uses Walrus + Tatum</h2>
+<p>Every expense and learned preference is written as an encrypted memory to Walrus via Walrus Memory, under a MemWalAccount created server-side with a dedicated delegate key. Recall is semantic, so “are we over on groceries?” finds the learned limit plus recent spend.</p>
+<p>Tatum's Sui RPC reads on-chain USDC settlements so a repayment closes the debt automatically. Tatum's Sui mainnet gateway (<code>sui-mainnet.gateway.tatum.io</code>, GraphQL interface, <code>x-api-key</code> auth) powers the on-chain side: <code>balance()</code> reads a member's SUI/USDC balance and <code>settlements()</code> scans transactions touching the group address and keeps positive native-USDC balance changes. <code>Tally.reconcile()</code> matches each sender to a member, records the repayment in the ledger, and writes a “Settlement” memory to Walrus, so the group's debts close themselves and the history is remembered across sessions.</p>
+
+<h2>Mainnet demo (6 Nov 2026)</h2>
+<ul class="evidence">
+  <li>Account ID: <code>0xabde14269e71abb7073330f4b8b1e0a7f28dca98ce0310b1a525e270c59a81fd</code></li>
+  <li>Agent / delegate (MEMWAL_AGENT_ID): <code>0x1a547a6efc30be59b42ae33d47033a352cb92eae38924865c926f3e84e547464</code></li>
+  <li>Relayer: <code>https://relayer.memory.walrus.xyz</code></li>
+  <li>Fourteen memories written (7 expenses, 4 category limits, 3 habits).</li>
+</ul>
+<p>Recall returns the grocery $250 limit, Casey's October utilities payment, and the first-Monday USDC-on-Sui settlement habit. Staging relayer TLS is broken (Railway cert); mainnet is the live path.</p>
+
+<h2>How it learned over time</h2>
+<p>The useful part is not just storing expenses — it is that a later <code>learnLimit</code> changes what the assistant says when the same question comes back.</p>
+<p>Before any category limit was remembered, asking <em>“are we over on entertainment?”</em> only surfaced the raw ledger line: Blake paid $90 for concert tickets (split with Casey and Drew). There was no ceiling in memory, so the honest reply was just the spend — no warning, because the app had nothing to warn against.</p>
+<p>After the group preference was written (<code>learnLimit('entertainment', 100)</code> → <em>“Learned preference: group monthly limit for entertainment is 100 USD.”</em>), the same question on mainnet now returns both memories side by side. Re-verified 6 Nov 2026 (Asia/Dubai) against the live account: semantic recall for <code>entertainment limit</code> ranked the $100 monthly limit first and the $90 concert expense next. Combined with the in-process ledger, that flips the product copy from a neutral spend summary to an approaching-limit warning — <strong>$90 of $100</strong> this month — without anyone re-teaching the bot. Dining stays calm on the same path ($32 of the learned $150 limit). Groceries, utilities, and the first-Monday USDC settlement habit behave the same way: once the preference is a Walrus memory, every future session recalls it.</p>
+<blockquote>That before/after is the whole pitch for Walrus Memory here: the warning text changes because history was written once, encrypted, and recalled semantically — not because we hard-coded a rules engine per group.</blockquote>
+
+<h2>Code</h2>
+<ul>
+  <li>Repository: <a href="https://github.com/astra-tc/tally-total-recall">github.com/astra-tc/tally-total-recall</a></li>
+  <li>Parent repository: <a href="https://github.com/astratc/tally-total-recall">github.com/astratc/tally-total-recall</a> (PR #1)</li>
+</ul>
+</article>
+<footer>Astra Trading Company · contact: carl.astratc@proton.me</footer>
+</body>
+</html>
